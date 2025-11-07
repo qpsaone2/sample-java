@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: demo-app
-        image: your-acr-name.azurecr.io/demo-app:latest
+        image: acrhyosungdevyooshwan.azurecr.io/demo-app:latest
         ports:
         - containerPort: 8080
         resources:
@@ -43,8 +43,10 @@ kind: Service
 metadata:
   name: demo-app-service
   namespace: default
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     app: demo-app
   ports:
