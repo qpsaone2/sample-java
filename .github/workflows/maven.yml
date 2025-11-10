@@ -5,11 +5,11 @@ on:
     branches: [ "main" ]
 
 env:
-  ACR_NAME: acrhyosungdevyooshwan
+  ACR_NAME: acrhyosungdev
   IMAGE_NAME: demo-app
   AKS_CLUSTER: aks-hyosung-dev
-  AKS_RESOURCE_GROUP: rg-hyosung-dev-yooshwan
-  K8S_NAMESPACE: default
+  AKS_RESOURCE_GROUP: rg-hyosung-dev
+  K8S_NAMESPACE: dev
 
 jobs:
   build-and-deploy:
