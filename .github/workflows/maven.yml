@@ -9,7 +9,7 @@ env:
   IMAGE_NAME: demo-app
   AKS_CLUSTER: aks-hyosung-dev
   AKS_RESOURCE_GROUP: rg-hyosung-dev
-  K8S_NAMESPACE: dev
+  K8S_NAMESPACE: default
 
 jobs:
   build-and-deploy:
