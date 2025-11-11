@@ -1,3 +1,41 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-blob-static 
+spec:
+  capacity:
+    storage: 100Gi 
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: azureblob-fuse-premium 
+  csi:
+    driver: blob.csi.azure.com
+    readOnly: false
+    volumeHandle: pv-blob-static-handle
+    volumeAttributes:
+      resourceGroup: rg-hyosung-dev
+      storageAccount: sthyosungdev001
+      containerName: data
+      protocol: fuse
+    nodeStageSecretRef:
+      name: blob-secret
+      namespace: default
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-blob-claim 
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+  volumeName: pv-blob-static 
+  storageClassName: azureblob-fuse-premium 
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,7 +53,7 @@ spec:
     spec:
       containers:
       - name: demo-app
-        image: acrhyosungdevyooshwan.azurecr.io/demo-app:latest
+        image: acrhyosungdev.azurecr.io/demo-app:latest
         ports:
         - containerPort: 8080
         resources:
@@ -37,6 +75,13 @@ spec:
             port: 8080
           initialDelaySeconds: 10
           periodSeconds: 5
+        volumeMounts:
+        - name: blob-storage
+          mountPath: "/mnt/data" # 파드 내부에서 마운트될 경로
+      volumes:
+      - name: blob-storage
+        persistentVolumeClaim:
+          claimName: pvc-blob-claim
 ---
 apiVersion: v1
 kind: Service
@@ -53,4 +98,3 @@ spec:
   - protocol: TCP
     port: 80
     targetPort: 8080
-
