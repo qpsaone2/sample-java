@@ -1,0 +1,101 @@
+name: Deploy Java App to AKS
+
+on:
+  # push:
+  #   branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Build with Maven
+      run: mvn package -DskipTests
+
+    - name: Azure Login (Identity)
+      run: az login --identity
+
+    - name: Fetch Secrets from Key Vault
+      id: kv
+      run: |
+        KV_NAME="lsc-kv-001"
+        
+        ACR_NAME=$(az keyvault secret show -n acr-name --vault-name $KV_NAME --query value -o tsv)
+        echo "::add-mask::$ACR_NAME"
+        echo "ACR_NAME=$ACR_NAME" >> $GITHUB_ENV
+        
+        AKS_MI_CLIENT_ID=$(az keyvault secret show -n aks-mi-client-id --vault-name $KV_NAME --query value -o tsv)
+        echo "::add-mask::$AKS_MI_CLIENT_ID"
+        echo "AKS_MI_CLIENT_ID=$AKS_MI_CLIENT_ID" >> $GITHUB_ENV
+        
+        AZURE_TENANT_ID=$(az keyvault secret show -n azure-tenant-id --vault-name $KV_NAME --query value -o tsv)
+        echo "::add-mask::$AZURE_TENANT_ID"
+        echo "AZURE_TENANT_ID=$AZURE_TENANT_ID" >> $GITHUB_ENV
+        
+        RG_NAME=$(az keyvault secret show -n rg-name --vault-name $KV_NAME --query value -o tsv)
+        echo "RG_NAME=$RG_NAME" >> $GITHUB_ENV
+        
+        CLUSTER_NAME=$(az keyvault secret show -n cluster-name --vault-name $KV_NAME --query value -o tsv)
+        echo "CLUSTER_NAME=$CLUSTER_NAME" >> $GITHUB_ENV
+        
+        APP_DOMAIN=$(az keyvault secret show -n app-domain --vault-name $KV_NAME --query value -o tsv)
+        echo "APP_DOMAIN=$APP_DOMAIN" >> $GITHUB_ENV
+        
+        CERT_NAME=$(az keyvault secret show -n cert-name --vault-name $KV_NAME --query value -o tsv)
+        echo "CERT_NAME=$CERT_NAME" >> $GITHUB_ENV
+        
+        echo "KV_NAME=$KV_NAME" >> $GITHUB_ENV
+
+    - name: Build and Push Docker Image
+      run: |
+        az acr login --name ${{ env.ACR_NAME }}
+        
+        IMAGE_TAG=${{ github.sha }}
+        ACR_LOGIN_SERVER="${{ env.ACR_NAME }}.azurecr.io"
+        
+        docker build -t $ACR_LOGIN_SERVER/my-java-app:$IMAGE_TAG .
+        docker push $ACR_LOGIN_SERVER/my-java-app:$IMAGE_TAG
+        
+        echo "ACR_LOGIN_SERVER=$ACR_LOGIN_SERVER" >> $GITHUB_ENV
+        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+    - name: Get AKS Credentials
+      run: |
+        az aks get-credentials --resource-group ${{ env.RG_NAME }} --name ${{ env.CLUSTER_NAME }} --overwrite-existing
+
+    - name: Substitute Variables
+      run: |
+        if ! command -v envsubst &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y gettext-base
+        fi
+        
+        mkdir -p k8s-final
+        
+        for file in k8s/*.yaml; do
+          filename=$(basename "$file")
+          envsubst < "$file" > "k8s-final/$filename"
+        done
+
+    - name: Deploy to AKS
+      run: |
+        kubectl apply -f k8s-final/spc.yaml
+        kubectl apply -f k8s-final/deployment.yaml
+        kubectl apply -f k8s-final/service.yaml
+        kubectl apply -f k8s-final/ingress.yaml
+        
+        kubectl rollout status deployment/my-java-app

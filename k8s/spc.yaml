@@ -1,0 +1,42 @@
+# k8s/spc.yaml
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: azure-tls-redis-spc
+  namespace: default
+spec:
+  provider: azure
+  secretObjects:
+  # 1) Nginx용 인증서 동기화
+  - secretName: tls-secret
+    type: kubernetes.io/tls
+    data:
+    - objectName: ${CERT_NAME}
+      key: tls.key
+    - objectName: ${CERT_NAME}
+      key: tls.crt
+  # 2) App용 Redis 정보 동기화
+  - secretName: redis-secret
+    type: Opaque
+    data:
+    - objectName: redis-host
+      key: REDIS_HOST
+    - objectName: redis-password
+      key: REDIS_PASSWORD
+  parameters:
+    usePodIdentity: "false"
+    useVMManagedIdentity: "true"
+    userAssignedIdentityID: "${AKS_MI_CLIENT_ID}"  # GitHub Actions가 채워넣을 예정
+    tenantId: "${AZURE_TENANT_ID}"                # GitHub Actions가 채워넣을 예정
+    keyvaultName: "${KV_NAME}"                    # GitHub Actions가 채워넣을 예정
+    objects: |
+      array:
+        - |
+          objectName: "${CERT_NAME}"
+          objectType: secret
+        - |
+          objectName: "redis-host"
+          objectType: secret
+        - |
+          objectName: "redis-password"
+          objectType: secret
