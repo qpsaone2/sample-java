@@ -1,8 +1,6 @@
 name: Deploy Java App to AKS
 
 on:
-  # push:
-  #   branches: [ "main" ]
   workflow_dispatch:
 
 permissions:
@@ -30,15 +28,19 @@ jobs:
     - name: Azure Login (Identity)
       run: az login --identity
 
-    - name: Fetch Secrets from Key Vault
+    - name: Fetch ALL Secrets from Key Vault
       id: kv
       run: |
         KV_NAME="lsc-kv-001"
         
+        ACR_LOGIN_SERVER=$(az keyvault secret show -n acr-login-server --vault-name $KV_NAME --query value -o tsv)
+        echo "::add-mask::$ACR_LOGIN_SERVER"
+        echo "ACR_LOGIN_SERVER=$ACR_LOGIN_SERVER" >> $GITHUB_ENV
+        
         ACR_NAME=$(az keyvault secret show -n acr-name --vault-name $KV_NAME --query value -o tsv)
         echo "::add-mask::$ACR_NAME"
         echo "ACR_NAME=$ACR_NAME" >> $GITHUB_ENV
-        
+
         AKS_MI_CLIENT_ID=$(az keyvault secret show -n aks-mi-client-id --vault-name $KV_NAME --query value -o tsv)
         echo "::add-mask::$AKS_MI_CLIENT_ID"
         echo "AKS_MI_CLIENT_ID=$AKS_MI_CLIENT_ID" >> $GITHUB_ENV
@@ -47,17 +49,26 @@ jobs:
         echo "::add-mask::$AZURE_TENANT_ID"
         echo "AZURE_TENANT_ID=$AZURE_TENANT_ID" >> $GITHUB_ENV
         
+        AZURE_SUBSCRIPTION_ID=$(az keyvault secret show -n azure-subscription-id --vault-name $KV_NAME --query value -o tsv)
+        echo "::add-mask::$AZURE_SUBSCRIPTION_ID"
+        echo "AZURE_SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID" >> $GITHUB_ENV
+
         RG_NAME=$(az keyvault secret show -n rg-name --vault-name $KV_NAME --query value -o tsv)
         echo "RG_NAME=$RG_NAME" >> $GITHUB_ENV
         
         CLUSTER_NAME=$(az keyvault secret show -n cluster-name --vault-name $KV_NAME --query value -o tsv)
         echo "CLUSTER_NAME=$CLUSTER_NAME" >> $GITHUB_ENV
-        
+
         APP_DOMAIN=$(az keyvault secret show -n app-domain --vault-name $KV_NAME --query value -o tsv)
         echo "APP_DOMAIN=$APP_DOMAIN" >> $GITHUB_ENV
         
         CERT_NAME=$(az keyvault secret show -n cert-name --vault-name $KV_NAME --query value -o tsv)
         echo "CERT_NAME=$CERT_NAME" >> $GITHUB_ENV
+
+        # SPC에는 Key Vault에 있는 "시크릿의 이름"을 적어야 합니다.
+        # 따라서 KV에 있는 'redis-host', 'redis-accesskey'라는 이름 자체를 변수로 넘깁니다.
+        echo "REDIS_HOST_SECRET_NAME=redis-host" >> $GITHUB_ENV
+        echo "REDIS_KEY_SECRET_NAME=redis-accesskey" >> $GITHUB_ENV
         
         echo "KV_NAME=$KV_NAME" >> $GITHUB_ENV
 
@@ -66,19 +77,18 @@ jobs:
         az acr login --name ${{ env.ACR_NAME }}
         
         IMAGE_TAG=${{ github.sha }}
-        ACR_LOGIN_SERVER="${{ env.ACR_NAME }}.azurecr.io"
+        FULL_IMAGE_NAME="${{ env.ACR_LOGIN_SERVER }}/my-java-app:$IMAGE_TAG"
         
-        docker build -t $ACR_LOGIN_SERVER/my-java-app:$IMAGE_TAG .
-        docker push $ACR_LOGIN_SERVER/my-java-app:$IMAGE_TAG
-        
-        echo "ACR_LOGIN_SERVER=$ACR_LOGIN_SERVER" >> $GITHUB_ENV
+        docker build -t $FULL_IMAGE_NAME .
+        docker push $FULL_IMAGE_NAME
+
         echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
     - name: Get AKS Credentials
       run: |
-        az aks get-credentials --resource-group ${{ env.RG_NAME }} --name ${{ env.CLUSTER_NAME }} --overwrite-existing
+        az aks get-credentials --resource-group ${{ env.RG_NAME }} --name ${{ env.CLUSTER_NAME }} --overwrite-existing --admin
 
-    - name: Substitute Variables
+    - name: Substitute Variables (Create Final Manifests)
       run: |
         if ! command -v envsubst &> /dev/null; then
             sudo apt-get update && sudo apt-get install -y gettext-base
@@ -86,9 +96,11 @@ jobs:
         
         mkdir -p k8s-final
         
+        # k8s 폴더 내 모든 yaml 파일 변수 치환
         for file in k8s/*.yaml; do
           filename=$(basename "$file")
           envsubst < "$file" > "k8s-final/$filename"
+          echo "Generated k8s-final/$filename"
         done
 
     - name: Deploy to AKS

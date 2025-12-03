@@ -1,4 +1,3 @@
-# k8s/spc.yaml
 apiVersion: secrets-store.csi.x-k8s.io/v1
 kind: SecretProviderClass
 metadata:
@@ -19,24 +18,24 @@ spec:
   - secretName: redis-secret
     type: Opaque
     data:
-    - objectName: redis-host
+    - objectName: ${REDIS_HOST_SECRET_NAME}   
       key: REDIS_HOST
-    - objectName: redis-password
+    - objectName: ${REDIS_KEY_SECRET_NAME}    
       key: REDIS_PASSWORD
   parameters:
     usePodIdentity: "false"
     useVMManagedIdentity: "true"
-    userAssignedIdentityID: "${AKS_MI_CLIENT_ID}"  # GitHub Actions가 채워넣을 예정
-    tenantId: "${AZURE_TENANT_ID}"                # GitHub Actions가 채워넣을 예정
-    keyvaultName: "${KV_NAME}"                    # GitHub Actions가 채워넣을 예정
+    userAssignedIdentityID: "${AKS_MI_CLIENT_ID}"
+    tenantId: "${AZURE_TENANT_ID}"
+    keyvaultName: "${KV_NAME}"
     objects: |
       array:
         - |
           objectName: "${CERT_NAME}"
           objectType: secret
         - |
-          objectName: "redis-host"
+          objectName: "${REDIS_HOST_SECRET_NAME}"
           objectType: secret
         - |
-          objectName: "redis-password"
+          objectName: "${REDIS_KEY_SECRET_NAME}"
           objectType: secret
