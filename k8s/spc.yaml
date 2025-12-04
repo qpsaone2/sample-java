@@ -77,8 +77,8 @@ spec:
           key: AZURE_TENANT_ID
         - objectName: AZURE_SUBSCRIPTION_ID
           key: AZURE_SUBSCRIPTION_ID
-        - objectName: USER_ASSIGNED_ID
-          key: USER_ASSIGNED_ID
+        - objectName: USERASSIGNED_ID
+          key: USERASSIGNED_ID
         - objectName: ACR_NAME
           key: ACR_NAME
         - objectName: ACR_LOGIN_SERVER
