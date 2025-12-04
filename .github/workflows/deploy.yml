@@ -34,23 +34,18 @@ jobs:
         KV_NAME="lsc-kv-001"
         
         ACR_LOGIN_SERVER=$(az keyvault secret show -n acr-login-server --vault-name $KV_NAME --query value -o tsv)
-        echo "::add-mask::$ACR_LOGIN_SERVER"
         echo "ACR_LOGIN_SERVER=$ACR_LOGIN_SERVER" >> $GITHUB_ENV
         
         ACR_NAME=$(az keyvault secret show -n acr-name --vault-name $KV_NAME --query value -o tsv)
-        echo "::add-mask::$ACR_NAME"
         echo "ACR_NAME=$ACR_NAME" >> $GITHUB_ENV
 
         AKS_MI_CLIENT_ID=$(az keyvault secret show -n aks-mi-client-id --vault-name $KV_NAME --query value -o tsv)
-        echo "::add-mask::$AKS_MI_CLIENT_ID"
         echo "AKS_MI_CLIENT_ID=$AKS_MI_CLIENT_ID" >> $GITHUB_ENV
         
         AZURE_TENANT_ID=$(az keyvault secret show -n azure-tenant-id --vault-name $KV_NAME --query value -o tsv)
-        echo "::add-mask::$AZURE_TENANT_ID"
         echo "AZURE_TENANT_ID=$AZURE_TENANT_ID" >> $GITHUB_ENV
         
         AZURE_SUBSCRIPTION_ID=$(az keyvault secret show -n azure-subscription-id --vault-name $KV_NAME --query value -o tsv)
-        echo "::add-mask::$AZURE_SUBSCRIPTION_ID"
         echo "AZURE_SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID" >> $GITHUB_ENV
 
         RG_NAME=$(az keyvault secret show -n rg-name --vault-name $KV_NAME --query value -o tsv)
