@@ -42,7 +42,7 @@ jobs:
         echo "ACR_NAME=$ACR_NAME" >> $GITHUB_ENV
 
         AKS_MI_CLIENT_ID=$(az keyvault secret show -n aks-mi-client-id --vault-name $KV_NAME --query value -o tsv)
-        # echo "::add-mask::$AKS_MI_CLIENT_ID"
+        echo "::add-mask::$AKS_MI_CLIENT_ID"
         echo "AKS_MI_CLIENT_ID=$AKS_MI_CLIENT_ID" >> $GITHUB_ENV
         
         AZURE_TENANT_ID=$(az keyvault secret show -n azure-tenant-id --vault-name $KV_NAME --query value -o tsv)
