@@ -23,16 +23,16 @@ spec:
             - secretRef:
                 name: app-env-secret
 
-          # 시크릿을 Pod에 가져오기 위해 CSI Driver 마운트
-          volumeMounts:
-            - name: secrets-store-inline
-              mountPath: "/mnt/secrets-store"
-              readOnly: true
+      #     # 시크릿을 Pod에 가져오기 위해 CSI Driver 마운트
+      #     volumeMounts:
+      #       - name: secrets-store-inline
+      #         mountPath: "/mnt/secrets-store"
+      #         readOnly: true
 
-      volumes:
-        - name: secrets-store-inline
-          csi:
-            driver: secrets-store.csi.k8s.io
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: "azure-kv-provider" 
+      # volumes:
+      #   - name: secrets-store-inline
+      #     csi:
+      #       driver: secrets-store.csi.k8s.io
+      #       readOnly: true
+      #       volumeAttributes:
+      #         secretProviderClass: "azure-kv-provider" 
