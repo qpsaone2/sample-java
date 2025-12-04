@@ -21,7 +21,7 @@ spec:
     - objectName: ${REDIS_HOST_SECRET_NAME}   
       key: REDIS_HOST
     - objectName: ${REDIS_KEY_SECRET_NAME}    
-      key: REDIS_PASSWORD
+      key: REDIS_ACCESS_KEY
   parameters:
     usePodIdentity: "false"
     useVMManagedIdentity: "true"
