@@ -1,8 +1,9 @@
-# k8s/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: my-java-app
+  labels:
+    app: my-java-app
 spec:
   replicas: 1
   selector:
@@ -15,20 +16,23 @@ spec:
     spec:
       containers:
         - name: my-java-app
-          image: ${ACR_LOGIN_SERVER}/my-java-app:${IMAGE_TAG} # GitHub Actions가 채워넣음
+          image: ${ACR_LOGIN_SERVER}/my-java-app:${IMAGE_TAG}
           ports:
-            - containerPort: 8080
+            - containerPort: 8080 
           envFrom:
-          - secretRef:
-              name: redis-secret  # SPC가 만들어준 Secret 사용
+            - secretRef:
+                name: app-env-secret
+
+          # 시크릿을 Pod에 가져오기 위해 CSI Driver 마운트
           volumeMounts:
-          - name: secrets-mount
-            mountPath: "/mnt/secrets"
-            readOnly: true
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
+
       volumes:
-        - name: secrets-mount
+        - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "azure-tls-redis-spc"
+              secretProviderClass: "azure-kv-provider" 

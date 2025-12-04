@@ -8,17 +8,18 @@ metadata:
 spec:
   ingressClassName: nginx
   tls:
-  - hosts:
-    - "${APP_DOMAIN}"       # 예: www.skyops.dev
-    secretName: "tls-secret"
+    - hosts:
+        - ${APP_DOMAIN}
+      secretName: ingress-tls-secret
   rules:
-  - host: "${APP_DOMAIN}"
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: my-java-app-svc
-            port:
-              number: 80
+    - host: ${APP_DOMAIN}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: my-java-app-service
+                port:
+                  number: 80
+

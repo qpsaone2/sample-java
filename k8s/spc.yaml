@@ -1,41 +1,109 @@
 apiVersion: secrets-store.csi.x-k8s.io/v1
 kind: SecretProviderClass
 metadata:
-  name: azure-tls-redis-spc
-  namespace: default
+  name: azure-kv-provider
 spec:
   provider: azure
-  secretObjects:
-  # 1) Nginx용 인증서 동기화
-  - secretName: tls-secret
-    type: kubernetes.io/tls
-    data:
-    - objectName: ${CERT_NAME}
-      key: tls.key
-    - objectName: ${CERT_NAME}
-      key: tls.crt
-  # 2) App용 Redis 정보 동기화
-  - secretName: redis-secret
-    type: Opaque
-    data:
-    - objectName: ${REDIS_HOST_SECRET_NAME}   
-      key: REDIS_HOST
-    - objectName: ${REDIS_KEY_SECRET_NAME}    
-      key: REDIS_ACCESS_KEY
   parameters:
-    usePodIdentity: "false"
-    useVMManagedIdentity: "true"
-    userAssignedIdentityID: "${AKS_MI_CLIENT_ID}"
+    keyvaultName: "${KEY_VAULT_NAME}"
     tenantId: "${AZURE_TENANT_ID}"
-    keyvaultName: "${KV_NAME}"
+    useVMManagedIdentity: "true" 
+    userAssignedIdentityID: "${USERASSIGNED_ID}"
+    
     objects: |
       array:
         - |
+          objectName: AZURE-TENANT-ID
+          objectType: secret
+          objectAlias: AZURE_TENANT_ID
+        - |
+          objectName: AZURE-SUBSCRIPTION-ID
+          objectType: secret
+          objectAlias: AZURE_SUBSCRIPTION_ID
+        - |
+          objectName: USERASSINGED-ID
+          objectType: secret
+          objectAlias: USERASSIGNED_ID
+        - |
+          objectName: ACR-NAME
+          objectType: secret
+          objectAlias: ACR_NAME
+        - |
+          objectName: ACR-LOGIN-SERVER
+          objectType: secret
+          objectAlias: ACR_LOGIN_SERVER
+        - |
+          objectName: RESOURCE-GROUP-NAME
+          objectType: secret
+          objectAlias: RESOURCE_GROUP_NAME
+        - |
+          objectName: AKS-CLUSTER-NAME
+          objectType: secret
+          objectAlias: AKS_CLUSTER_NAME
+        - |
+          objectName: KEY-VAULT-NAME
+          objectType: secret
+          objectAlias: KEY_VAULT_NAME
+        - |
+          objectName: REDIS-HOST-PROD
+          objectType: secret
+          objectAlias: REDIS_HOST_PROD
+        - |
+          objectName: REDIS-PORT-PROD
+          objectType: secret
+          objectAlias: REDIS_PORT_PROD
+        - |
+          objectName: REDIS-PASSWORD-PROD
+          objectType: secret
+          objectAlias: REDIS_PASSWORD_PROD
+        - |
+          objectName: APP-DOMAIN
+          objectType: secret
+          objectAlias: APP_DOMAIN
+        - |
+          objectName: CERT-NAME
+          objectType: secret
+          objectAlias: CERT_NAME
+        - |
           objectName: "${CERT_NAME}"
           objectType: secret
-        - |
-          objectName: "${REDIS_HOST_SECRET_NAME}"
-          objectType: secret
-        - |
-          objectName: "${REDIS_KEY_SECRET_NAME}"
-          objectType: secret
+          objectAlias: ingress-tls-cert
+
+  secretObjects:
+    - secretName: app-env-secret
+      type: Opaque
+      data:
+        - objectName: AZURE_TENANT_ID
+          key: AZURE_TENANT_ID
+        - objectName: AZURE_SUBSCRIPTION_ID
+          key: AZURE_SUBSCRIPTION_ID
+        - objectName: USER_ASSIGNED_ID
+          key: USER_ASSIGNED_ID
+        - objectName: ACR_NAME
+          key: ACR_NAME
+        - objectName: ACR_LOGIN_SERVER
+          key: ACR_LOGIN_SERVER
+        - objectName: RESOURCE_GROUP_NAME
+          key: RESOURCE_GROUP_NAME
+        - objectName: AKS_CLUSTER_NAME
+          key: AKS_CLUSTER_NAME
+        - objectName: KEY_VAULT_NAME
+          key: KEY_VAULT_NAME
+        - objectName: REDIS_HOST_PROD
+          key: REDIS_HOST_PROD
+        - objectName: REDIS_PORT_PROD
+          key: REDIS_PORT_PROD
+        - objectName: REDIS_PASSWORD_PROD
+          key: REDIS_PASSWORD_PROD
+        - objectName: APP_DOMAIN
+          key: APP_DOMAIN
+        - objectName: CERT_NAME
+          key: CERT_NAME
+
+    - secretName: ingress-tls-secret
+      type: kubernetes.io/tls
+      data:
+        - objectName: ingress-tls-cert
+          key: tls.key
+        - objectName: ingress-tls-cert
+          key: tls.crt
