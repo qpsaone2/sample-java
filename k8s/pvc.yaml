@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: blob-pvc-static
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: azure-blob-static # PV에 설정한 이름과 정확히 같아야 함
+  selector:
+    matchLabels:
+      type: azureblob # PV의 라벨과 일치해야 바인딩 됨

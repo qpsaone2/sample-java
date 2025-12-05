@@ -63,6 +63,15 @@ jobs:
         CERT_NAME=$(az keyvault secret show -n CERT-NAME --vault-name $KV_NAME --query value -o tsv)
         echo "CERT_NAME=$CERT_NAME" >> $GITHUB_ENV
 
+        PV_STORAGE_ACCOUNT_NAME=$(az keyvault secret show -n PV-STORAGE-ACCOUNT-NAME --vault-name $KV_NAME --query value -o tsv)
+        echo "PV_STORAGE_ACCOUNT_NAME=$PV_STORAGE_ACCOUNT_NAME" >> $GITHUB_ENV
+
+        PV_CONTAINER_NAME=$(az keyvault secret show -n PV-CONTAINER-NAME --vault-name $KV_NAME --query value -o tsv)
+        echo "PV_CONTAINER_NAME=$PV_CONTAINER_NAME" >> $GITHUB_ENV
+        
+        STORAGE_ACCESS_KEY=$(az keyvault secret show -n STORAGE-ACCESS-KEY --vault-name $KV_NAME --query value -o tsv)
+        echo "::add-mask::$STORAGE_ACCESS_KEY"
+        echo "STORAGE_ACCESS_KEY=$STORAGE_ACCESS_KEY" >> $GITHUB_ENV
 
     - name: Build and Push Docker Image
       run: |
@@ -96,6 +105,17 @@ jobs:
 
     - name: Deploy to AKS
       run: |
+
+        # PV Secret 생성
+        kubectl create secret generic azure-blob-secret \
+          --from-literal=azurestorageaccountname=${{ env.PV_STORAGE_ACCOUNT_NAME }} \
+          --from-literal=azurestorageaccountkey=${{ env.STORAGE_ACCESS_KEY }} \
+          --type=Opaque \
+          --dry-run=client -o yaml | kubectl apply -f -
+
+        kubectl apply -f k8s-final/pv.yaml
+        kubectl apply -f k8s-final/pvc.yaml
+
         kubectl apply -f k8s-final/spc.yaml
         kubectl apply -f k8s-final/deployment.yaml
         kubectl apply -f k8s-final/service.yaml
